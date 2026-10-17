@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#102344">
+<title>SameWave — Club Edition</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,Arial,sans-serif;background:#87c9ed;color:#fff;user-select:none}
+#game{position:fixed;inset:0}canvas{display:block;width:100%;height:100%;touch-action:none}
+button{font:inherit;color:#fff;border:1px solid #ffffff30;background:#102344e8;border-radius:14px;padding:11px 14px;min-height:44px;cursor:pointer}
+button:active{transform:scale(.97)}button:disabled{opacity:.45}
+#top{position:absolute;top:env(safe-area-inset-top,8px);left:0;right:0;padding:13px;display:flex;justify-content:space-between;z-index:10;pointer-events:none}
+#brand{font-size:clamp(22px,5vw,31px);font-weight:900;letter-spacing:-1px;text-shadow:0 2px 10px #001b3c55}#brand span{color:#ff3b91}
+#tag{font-size:12px;margin-top:2px}
+#online{position:absolute;top:94px;left:12px;background:#102344e8;padding:9px 12px;border-radius:14px;font-weight:700;font-size:12px;z-index:10;pointer-events:none}
+#hint{position:absolute;bottom:calc(100px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#102344e8;padding:9px 13px;border-radius:25px;font-size:12px;z-index:10;pointer-events:none;text-align:center;max-width:92vw;white-space:normal}
+#actions{position:absolute;right:12px;top:94px;display:flex;flex-direction:column;gap:7px;z-index:10}
+#actions button{font-size:12px;padding:9px 11px;text-align:left;font-weight:700}
+#login{position:fixed;inset:0;background:linear-gradient(135deg,#102344,#0a1a33);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;overflow-y:auto}
+#loginCard{background:#101d33f5;border:1px solid #ffffff30;border-radius:24px;padding:25px;max-width:400px;width:100%;text-align:center;box-shadow:0 10px 40px #0008}
+#loginCard h1{margin:0 0 4px;font-size:30px}#loginCard h1 span{color:#ff3b91}
+#loginCard p{color:#a8c4e0;font-size:13px;margin:4px 0 18px}
+.input-group{text-align:left;margin-bottom:12px}.input-group label{display:block;font-size:11px;color:#bde8ff;margin-bottom:4px;margin-left:4px;font-weight:600}
+.input-group input{width:100%;background:#0b1626;border:1px solid #ffffff30;border-radius:13px;padding:13px;color:#fff;font-size:16px;outline:none}
+.btn-main{width:100%;margin-top:8px;background:#ff3b91;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:800}
+#loginStatus{margin-top:12px;font-size:12px;color:#ffb6b6;min-height:16px}
+#roomInfo{display:none;margin-top:13px;padding:12px;background:#0b1626;border-radius:13px;border:1px dashed #ff3b91}
+#roomCode{font-size:23px;font-weight:900;letter-spacing:2px;color:#ff3b91;user-select:all}
+#interactBtn{position:absolute;bottom:calc(125px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#34c759;font-size:15px;font-weight:800;padding:13px 24px;border-radius:30px;border:3px solid #fff;display:none;z-index:20;box-shadow:0 4px 20px #0005}
+#chatPanel{display:none;position:absolute;left:50%;bottom:calc(15px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(94vw,500px);max-height:60vh;background:#101d33f7;border:1px solid #ffffff35;border-radius:18px;padding:12px;z-index:50}
+#chatHeader{display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:#bde8ff;align-items:center}
+#chatMessages{height:25vh;overflow-y:auto;padding:5px;display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.msg{padding:7px 10px;border-radius:12px;max-width:85%;word-wrap:break-word;font-size:13px}.msg .who{font-size:10px;opacity:.65;display:block;margin-bottom:2px;font-weight:600}.msg.mine{align-self:flex-end;background:#ff3b91}.msg.other{align-self:flex-start;background:#2a3d5c}
+#chatForm{display:flex;gap:6px}#chatInput{flex:1;min-width:0;background:#0b1626;border:1px solid #ffffff30;border-radius:11px;padding:11px;color:#fff;font-size:14px}
+#chatSend{background:#34c759;border:none;border-radius:11px;font-weight:700}
+#driveOverlay{display:none;position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:12;background:#102344e8;border:1px solid #ffffff35;border-radius:18px;padding:12px 16px;text-align:center;width:min(90vw,320px);pointer-events:none}
+#driveTitle{font-size:17px;font-weight:900}#driveSub{font-size:12px;color:#c9e6ff;margin-top:3px}#driveBar{height:6px;background:#ffffff25;border-radius:8px;margin-top:10px;overflow:hidden}#driveProgress{height:100%;width:0;background:#ff3b91;border-radius:8px}
+#welcome{display:none;position:absolute;left:50%;top:25%;transform:translateX(-50%);z-index:25;background:linear-gradient(135deg,#ff3b91,#ff7b5c);border:2px solid #fff;border-radius:20px;padding:16px 22px;text-align:center;box-shadow:0 12px 40px #0007;width:min(88vw,340px);animation:pop .45s ease-out}
+#welcome strong{display:block;font-size:21px}#welcome span{display:block;font-size:12px;margin-top:5px}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-12px) scale(.88)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+#movePad{position:absolute;left:14px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:15;display:none;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,45px);gap:4px;touch-action:none}
+#movePad button{padding:0;background:#102344d9;border-radius:12px;font-size:20px}
+#movePad .empty{visibility:hidden}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+<div id="game"></div>
+<div id="login"><div id="loginCard">
+<h1>Same<span>Wave</span> 🌐</h1><p>Walk around, meet people, and visit the club</p>
+<div class="input-group"><label>Your Name</label><input id="loginName" maxlength="16" placeholder="e.g. Chinedu" autocomplete="off"></div>
+<div class="input-group"><label>Room Code (leave blank to create a room)</label><input id="loginRoom" maxlength="12" placeholder="e.g. SAME1234" autocomplete="off" style="text-transform:uppercase"></div>
+<button class="btn-main" id="btnStart">Enter World</button><div id="loginStatus"></div>
+<div id="roomInfo"><small>Share this room code with friends:</small><div id="roomCode">----</div><button id="copyCode" class="btn-main">Copy Code</button></div>
+</div></div>
+<div id="top"><div><div id="brand">Same<span>Wave</span> 🌐</div><div id="tag">🌴 Outside</div></div></div>
+<div id="online">🟢 <span id="onlineCount">1</span> online</div>
+<div id="hint">Tap the ground to walk. Use the buttons to travel.</div>
+<nav id="actions"><button id="btnClub">🎵 Go to Club</button><button id="btnOutside" disabled>🌴 Go Outside</button><button id="btnActivities">✨ Life Activities</button></nav>
+<div id="activityPanel" style="display:none;position:absolute;right:12px;top:245px;z-index:30;width:min(88vw,310px);max-height:55vh;overflow:auto;background:#102344f2;border:1px solid #ffffff35;border-radius:18px;padding:12px"><b>🌎 What do you want to do?</b><div id="activityGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px"></div><button id="activityClose" style="width:100%;margin-top:8px">Close</button></div>
+<div id="driveOverlay"><div id="driveTitle">🚕 Journey to the club</div><div id="driveSub">Getting on the road…</div><div id="driveBar"><div id="driveProgress"></div></div></div>
+<div id="welcome"><strong>🎉 Welcome to SameWave Club!</strong><span>Your night starts here. Enjoy the music and meet new people.</span></div>
+<button id="interactBtn">💬 Talk</button>
+<div id="movePad"><button class="empty">·</button><button data-move="forward">▲</button><button class="empty">·</button><button data-move="left">◀</button><button data-move="back">▼</button><button data-move="right">▶</button></div>
+<div id="chatPanel"><div id="chatHeader"><span id="chatTarget">Public Chat</span><button id="chatClose" style="padding:4px 8px;min-height:auto;background:transparent;border:none;font-size:18px">✕</button></div><div id="chatMessages"></div><form id="chatForm"><input id="chatInput" maxlength="200" placeholder="Say something..." autocomplete="off"><button id="chatSend" type="submit">Send</button></form></div>
+<script type="module">
+import * as THREE from 'three';
+const $=id=>document.getElementById(id);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x8bd1f3);scene.fog=new THREE.Fog(0x8bd1f3,65,210);
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,600);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;$('game').appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xe4f7ff,0x62764d,2));
+const sun=new THREE.DirectionalLight(0xfff0d5,2.2);sun.position.set(-30,50,25);scene.add(sun);
+const mat=(c,r=.8,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const M={skin:mat(0x955a3c),shirt:mat(0x202b3b),pants:mat(0x263b5a),hair:mat(0x201b18),shoe:mat(0xf3f4f6),dark:mat(0x18263b)};
+function box(p,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);p.add(o);return o}
+function sphere(p,r,m,x,y,z,sx=1,sy=1,sz=1){const o=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);p.add(o);return o}
+function floor(p,w,d,m,x=0,y=-.05,z=0){const o=new THREE.Mesh(new THREE.PlaneGeometry(w,d),m);o.rotation.x=-Math.PI/2;o.position.set(x,y,z);p.add(o);return o}
+function makePerson(options={}){
+ const root=new THREE.Group(),rig=new THREE.Group();root.add(rig);
+ const skin=options.skin||mat(0x955a3c),shirt=options.shirt||mat(0x346c9a),pants=options.pants||mat(0x263b5a),hair=options.hair||mat(0x201b18);
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.62,5,10),shirt);torso.position.y=1.48;rig.add(torso);
+ sphere(rig,.265,skin,0,2.25,0,1,.98,.92);sphere(rig,.275,hair,0,2.47,-.025,1.06,.52,1);
+ sphere(rig,.105,hair,-.20,2.37,-.015,.9,.75,.9);sphere(rig,.105,hair,.20,2.37,-.015,.9,.75,.9);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.2,10),skin);neck.position.set(0,2.03,0);rig.add(neck);
+ const brow=mat(0x33231c);box(rig,.085,.018,.02,brow,-.095,2.30,-.238);box(rig,.085,.018,.02,brow,.095,2.30,-.238);
+ const white=mat(0xf7f8fa);sphere(rig,.038,white,-.095,2.255,-.24,.8,1,.45);sphere(rig,.038,white,.095,2.255,-.24,.8,1,.45);
+ sphere(rig,.018,M.dark,-.095,2.255,-.264);sphere(rig,.018,M.dark,.095,2.255,-.264);sphere(rig,.035,skin,0,2.17,-.255,.8,1,.7);
+ const smile=new THREE.Mesh(new THREE.TorusGeometry(.055,.009,6,12,Math.PI),mat(0x4b2118));smile.position.set(0,2.12,-.25);smile.rotation.z=Math.PI;rig.add(smile);
+ const arms=[],legs=[];
+ for(const side of [-1,1]){
+  const arm=new THREE.Group();arm.position.set(side*.4,1.78,0);rig.add(arm);
+  const upper=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.39,4,8),shirt);upper.position.y=-.23;arm.add(upper);
+  const fore=new THREE.Mesh(new THREE.CapsuleGeometry(.085,.35,4,8),skin);fore.position.y=-.62;arm.add(fore);sphere(arm,.085,skin,0,-.83,0);arms.push(arm);
+  const hip=new THREE.Group();hip.position.set(side*.17,1.02,0);rig.add(hip);
+  const thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.43,4,8),pants);thigh.position.y=-.25;hip.add(thigh);box(hip,.23,.14,.4,M.shoe,0,-.66,-.07);legs.push(hip);
+ }
+ const hitbox=new THREE.Mesh(new THREE.BoxGeometry(1.5,3,1.5),new THREE.MeshBasicMaterial({visible:false}));hitbox.position.y=1.5;root.add(hitbox);
+ root.userData={rig,arms,legs,hitbox,walkPhase:0};return root;
+}
+function nameTag(name){const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');x.fillStyle='rgba(16,35,68,.88)';x.beginPath();x.roundRect(6,26,500,76,38);x.fill();x.fillStyle='#fff';x.font='bold 48px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(name,256,64);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true}));s.scale.set(2.2,.55,1);s.position.y=3.35;return s}
+const outside=new THREE.Group();scene.add(outside);floor(outside,100,140,mat(0x8bcf77),0,-.06,0);
+// Long road with lanes and roadside markings
+floor(outside,13,180,mat(0x454c55),0,-.035,-25);
+for(let z=-110;z<65;z+=8)box(outside,.16,.025,3,mat(0xf7f1c6),0,-.005,z);
+for(const side of [-1,1]){
+ box(outside,.18,.03,180,mat(0xf6f2dc),side*6.2,-.004,-25);
+ for(let z=-95;z<50;z+=18){
+  const tree=new THREE.Group();tree.position.set(side*(9+Math.random()*5),0,z);outside.add(tree);
+  box(tree,.45,2.5,.45,mat(0x79543b),0,1.25,0);sphere(tree,1.6,mat(0x16834e),0,3.4,0,1,1.25,1);
+ }
+ for(let z=-85;z<40;z+=28){
+  const h=new THREE.Group();h.position.set(side*15,0,z);outside.add(h);
+  box(h,5,4,5,mat([0xe6c7a6,0xd5dbe8,0xd7b2c0][Math.floor(Math.random()*3)]),0,2,0);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(4,2,4),mat(0x7b3946));roof.position.set(0,5,0);roof.rotation.y=Math.PI/4;h.add(roof);
+  box(h,1,1.6,.08,mat(0x6a9fc4),-1,2.5,2.55);box(h,1,1.6,.08,mat(0x6a9fc4),1,2.5,2.55);
+ }
+}
+// Club building outside
+const clubExterior=new THREE.Group();clubExterior.position.set(0,0,-105);outside.add(clubExterior);
+box(clubExterior,20,10,12,mat(0x242744),0,5,0);box(clubExterior,22,.6,14,mat(0x171c33),0,10.2,0);
+box(clubExterior,6,4,.25,mat(0x101018),0,2,6.05);box(clubExterior,8,1.2,.3,mat(0xff3b91),0,7,6.1);
+box(clubExterior,9,.25,.35,mat(0x66e7ff),0,8,.0);
+for(let i=0;i<5;i++){const light=box(clubExterior,.35,.35,.35,mat(i%2?0x66e7ff:0xff3b91),-4+i*2,8,6.2)}
+// Interior club zone is a separate scene area, displayed only after the journey.
+const inside=new THREE.Group();scene.add(inside);inside.visible=false;
+floor(inside,34,34,mat(0x191923),0,-.06,0);
+box(inside,34,8,.5,mat(0x101018),0,4,-17);box(inside,34,8,.5,mat(0x101018),0,4,17);box(inside,.5,8,34,mat(0x101018),-17,4,0);box(inside,.5,8,34,mat(0x101018),17,4,0);
+box(inside,34,.4,34,mat(0x101018),0,8,0);box(inside,13,.08,13,mat(0xff3b91,.4),0,.01,0);
+const bar=new THREE.Group();bar.position.set(-11,0,-7);inside.add(bar);box(bar,8,1.4,3,mat(0x4a2c2a),0,.7,0);box(bar,8.2,.2,3.2,mat(0xffffff),0,1.5,0);
+for(let i=0;i<4;i++)box(bar,.3,.8,.3,mat(0x34c759),-3+i*2,1.95,0);
+const dj=new THREE.Group();dj.position.set(0,0,-14);inside.add(dj);box(dj,10,1.4,3,mat(0x111111),0,.7,0);box(dj,2,2,1,mat(0xff3b91),0,2.4,0);
+for(let i=0;i<8;i++){const l=new THREE.PointLight(i%2?0x4ddcff:0xff3b91,35,13);l.position.set(Math.sin(i*Math.PI/4)*8,5,Math.cos(i*Math.PI/4)*8);inside.add(l)}
+// Player and vehicle
+const player=makePerson({skin:M.skin,shirt:M.shirt,pants:M.pants});player.position.set(0,0,10);player.visible=false;scene.add(player);
+function makeCar(){
+ const car=new THREE.Group();
+ const body=mat(0xffd21c,.35,.15),windowMat=new THREE.MeshStandardMaterial({color:0x7fcbe7,roughness:.22,metalness:.15,transparent:true,opacity:.78}),rubber=mat(0x17191d),rim=mat(0xc8d3df,.3,.65);
+ box(car,2.35,.72,4.5,body,0,.78,0);box(car,1.8,.85,2.35,body,0,1.48,-.18);
+ box(car,1.62,.63,1.05,windowMat,0,1.58,-.78);box(car,1.62,.62,.92,windowMat,0,1.58,.43);
+ // windscreen / rear screen
+ const wind=box(car,1.75,.63,.09,windowMat,0,1.55,-1.36);wind.rotation.x=-.15;
+ const rear=box(car,1.65,.58,.08,windowMat,0,1.55,1.02);rear.rotation.x=.12;
+ for(const x of [-1.17,1.17])for(const z of [-1.45,1.45]){
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.28,18),rubber);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.43,z);car.add(wheel);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.3,16),rim);hub.rotation.z=Math.PI/2;hub.position.set(x*1.01,.43,z);car.add(hub);
+ }
+ for(const x of [-.78,.78]){box(car,.38,.22,.08,mat(0xfff4d0),x,.83,-2.27);box(car,.38,.22,.08,mat(0xff2929),x,.83,2.27)}
+ // A small visible human driver seated inside the cabin.
+ const driver=makePerson({skin:mat(0x955a3c),shirt:mat(0x233d5c),pants:mat(0x202b3b)});
+ driver.scale.set(.48,.48,.48);driver.position.set(-.35,.72,-.25);driver.rotation.y=Math.PI;car.add(driver);
+ // Passenger is the user's own avatar, scaled and seated visibly in the car.
+ const passenger=makePerson({skin:mat(0x955a3c),shirt:mat(0x202b3b),pants:mat(0x263b5a)});
+ passenger.scale.set(.48,.48,.48);passenger.position.set(.38,.72,.18);passenger.rotation.y=Math.PI;car.add(passenger);
+ return {car,driver,passenger};
+}
+const carParts=makeCar(),car=carParts.car;scene.add(car);car.visible=false;
+let currentZone='outside',targetPos=null,walkPhase=0,taxiState='none',journeyStart=0,journeyDuration=120000,journeyFrom=null,selectedPeer=null;
+let myPeer=null,myId=null,myName='Guest';const connections={},remotePlayers={};
+const COLORS=[0x346c9a,0x7b365f,0x36775b,0xd08c32,0x9b4dca,0xe04a4a,0x2ab7a9,0xe8a33d],SKINS=[0x955a3c,0x6e422e,0xb97950,0xd6a078,0x8d5438];
+const rand=a=>a[Math.floor(Math.random()*a.length)];
+function addRemotePlayer(d){if(remotePlayers[d.id])return;const a=makePerson({skin:mat(d.skin||rand(SKINS)),shirt:mat(d.shirt||rand(COLORS))});a.userData.hitbox.userData.peerId=d.id;a.userData.hitbox.userData.name=d.name;a.add(nameTag(d.name||'Guest'));a.position.set(Number(d.x)||0,0,Number(d.z)||0);scene.add(a);remotePlayers[d.id]={avatar:a,target:{x:a.position.x,z:a.position.z},zone:d.zone||'outside',name:d.name||'Guest',walkClock:0};updateVisibility();updateOnline()}
+function updateRemote(d){const p=remotePlayers[d.id];if(!p)return;p.target.x=d.x;p.target.z=d.z;p.zone=d.zone;updateVisibility();updateOnline()}
+function removePeer(id){if(remotePlayers[id]){scene.remove(remotePlayers[id].avatar);delete remotePlayers[id]}delete connections[id];updateOnline()}
+function updateOnline(){let n=1;for(const id in remotePlayers)if(remotePlayers[id].zone===currentZone)n++;$('onlineCount').textContent=n}
+function updateVisibility(){for(const id in remotePlayers)remotePlayers[id].avatar.visible=remotePlayers[id].zone===currentZone}
+function sendJoin(conn){conn.send({type:'join',id:myId,name:myName,x:player.position.x,z:player.position.z,zone:currentZone,skin:0x955a3c,shirt:0x346c9a})}
+function connectToPeer(id){if(!myPeer||id===myId||connections[id])return;const c=myPeer.connect(id);connections[id]=c;c.on('open',()=>sendJoin(c));c.on('data',d=>handleData(c.peer,d));c.on('close',()=>removePeer(c.peer))}
+function handleData(id,d){if(!d||!d.type)return;if(d.type==='join'){if(!remotePlayers[id])addRemotePlayer({...d,id});if(connections[id]?.open)connections[id].send({type:'join',id:myId,name:myName,x:player.position.x,z:player.position.z,zone:currentZone,skin:0x955a3c,shirt:0x346c9a})}else if(d.type==='move')updateRemote({id,x:d.x,z:d.z,zone:d.zone});else if(d.type==='chat'){addMessage(d.name,d.message,false)}}
+function broadcast(){for(const id in connections)if(connections[id]?.open)connections[id].send({type:'move',x:player.position.x,z:player.position.z,zone:currentZone})}
+function addMessage(name,text,mine){const e=document.createElement('div');e.className='msg '+(mine?'mine':'other');const w=document.createElement('span');w.className='who';w.textContent=name;e.appendChild(w);e.appendChild(document.createTextNode(text));$('chatMessages').appendChild(e);$('chatMessages').scrollTop=$('chatMessages').scrollHeight}
+function showHint(t){$('hint').textContent=t}
+function openTalk(){if(!selectedPeer||!remotePlayers[selectedPeer]){showHint('Walk close to another player first.');return} $('chatTarget').textContent='Chatting with '+remotePlayers[selectedPeer].name;$('chatPanel').style.display='block';setTimeout(()=>$('chatInput').focus(),100)}
+$('interactBtn').onclick=openTalk;$('chatClose').onclick=()=>$('chatPanel').style.display='none';
+$('chatForm').addEventListener('submit',e=>{e.preventDefault();const t=$('chatInput').value.trim();if(!t)return;addMessage(myName,t,true);if(selectedPeer&&connections[selectedPeer]?.open)connections[selectedPeer].send({type:'chat',name:myName,message:t});$('chatInput').value=''});
+// Robust tap-to-walk: raycast only against the current zone's actual floor, not walls/furniture.
+const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+const outsideFloor=outside.children.find(o=>o.geometry?.type==='PlaneGeometry'&&Math.abs(o.geometry.parameters.width-100)<.01);
+const insideFloor=inside.children.find(o=>o.geometry?.type==='PlaneGeometry');
+function walkTo(x,z,callback=null){const lim=currentZone==='club'?15.5:55;x=THREE.MathUtils.clamp(x,-lim,lim);z=currentZone==='club'?THREE.MathUtils.clamp(z,-15.5,15.5):THREE.MathUtils.clamp(z,-105,55);targetPos={x,z,callback};$('interactBtn').style.display='none'}
+renderer.domElement.addEventListener('pointerdown',e=>{
+ if(!player.visible||taxiState!=='none'||$('chatPanel').style.display==='block')return;
+ const r=renderer.domElement.getBoundingClientRect();pointer.x=((e.clientX-r.left)/r.width)*2-1;pointer.y=-((e.clientY-r.top)/r.height)*2+1;raycaster.setFromCamera(pointer,camera);
+ const hitboxes=[];for(const id in remotePlayers){const p=remotePlayers[id];if(p.zone===currentZone)hitboxes.push(p.avatar.userData.hitbox)}
+ const personHit=raycaster.intersectObjects(hitboxes,false)[0];
+ if(personHit){const id=personHit.object.userData.peerId,rp=remotePlayers[id];if(rp){selectedPeer=id;const dx=rp.avatar.position.x-player.position.x,dz=rp.avatar.position.z-player.position.z,dist=Math.max(.01,Math.hypot(dx,dz));showHint('Walking to '+rp.name+'…');walkTo(rp.avatar.position.x-dx/dist*1.8,rp.avatar.position.z-dz/dist*1.8,()=>{selectedPeer=id;$('interactBtn').style.display='block';showHint('You are near '+rp.name+'. Tap Talk.');});}return}
+ const f=currentZone==='club'?insideFloor:outsideFloor;const hits=raycaster.intersectObject(f,false);if(hits.length){const p=hits[0].point;walkTo(p.x,p.z,()=>{targetPos=null;});showHint('Walking…');selectedPeer=null}
+});
+// Keyboard and mobile movement controls.
+const held=new Set();addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key.toLowerCase())){held.add(e.key.toLowerCase());e.preventDefault()}});addEventListener('keyup',e=>held.delete(e.key.toLowerCase()));
+document.querySelectorAll('#movePad button[data-move]').forEach(b=>{const start=e=>{e.preventDefault();held.add(b.dataset.move)},end=e=>{e.preventDefault();held.delete(b.dataset.move)};b.addEventListener('pointerdown',start);b.addEventListener('pointerup',end);b.addEventListener('pointercancel',end);b.addEventListener('pointerleave',end)});
+function setTravelButtons(){ $('btnClub').disabled=currentZone!=='outside'||taxiState!=='none';$('btnOutside').disabled=currentZone!=='club'||taxiState!=='none';}
+function beginJourney(toClub){
+ if(taxiState!=='none')return;targetPos=null;selectedPeer=null;$('interactBtn').style.display='none';$('welcome').style.display='none';$('btnClub').disabled=true;$('btnOutside').disabled=true;
+ car.visible=true;carParts.passenger.visible=true;carParts.driver.visible=true;
+ if(toClub){
+  taxiState='arriving';car.position.set(0,0,18);car.rotation.y=Math.PI;showHint('Your car is arriving. Please wait…');
+ }else{
+  taxiState='exitReverse';car.position.set(0,0,2);car.rotation.y=0;showHint('The car is reversing to the club exit…');
+ }
+}
+$('btnClub').onclick=()=>beginJourney(true);$('btnOutside').onclick=()=>beginJourney(false);
+// Travel state machine: approach -> reverse/turn -> 120-second road trip -> park -> exit -> walk inside.
+let stateTimer=0,roadStartZ=0,roadEndZ=-100,arrivalWalkStarted=false;
+function startDrive(){taxiState='driving';journeyStart=performance.now();journeyDuration=120000;roadStartZ=car.position.z;roadEndZ=-100;currentZone='road';outside.visible=true;inside.visible=false;player.visible=false;carParts.passenger.visible=true;$('driveOverlay').style.display='block';$('driveTitle').textContent='🚕 Driving to SameWave Club';$('driveSub').textContent='Please enjoy the ride — 02:00 remaining';$('driveProgress').style.width='0%';showHint('You are inside the car. The journey takes 2 minutes.')}
+function arriveAtClub(){taxiState='arrivingAtDoor';$('driveOverlay').style.display='none';car.position.set(0,0,-96);car.rotation.y=0;car.visible=true;currentZone='outside';outside.visible=true;inside.visible=false;player.position.set(1.8,0,-97);player.visible=true;carParts.passenger.visible=false;showHint('You have arrived. Getting out of the car…');stateTimer=0;arrivalWalkStarted=false}
+function enterClub(){currentZone='club';outside.visible=false;inside.visible=true;player.position.set(0,0,5);player.visible=true;player.rotation.y=Math.PI;taxiState='none';$('tag').textContent='🎵 Inside Club';$('welcome').style.display='block';setTimeout(()=>$('welcome').style.display='none',6500);showHint('Welcome to the club! Tap the ground to walk and meet people.');$('movePad').style.display='grid';setTravelButtons();updateVisibility();broadcast()}
+function leaveClubJourney(){taxiState='leavingClub';car.position.set(0,0,7);car.rotation.y=0;car.visible=true;player.visible=true;player.position.set(1.8,0,5);walkTo(1.8,0,()=>{});stateTimer=0;showHint('Walking to the car…')}
+function login(){
+ const name=$('loginName').value.trim().slice(0,16)||'Guest';let room=$('loginRoom').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+ myName=name;$('loginStatus').style.color='#fff';$('loginStatus').textContent='Connecting to room…';$('roomCode').textContent=room||'Creating…';
+ try{
+  myPeer=new Peer();
+  myPeer.on('open',id=>{myId=id;$('loginStatus').textContent='Connected!';$('loginStatus').style.color='#34c759';$('login').style.display='none';player.visible=true;$('movePad').style.display='grid';$('tag').textContent='🌴 Outside';if(room)connectToPeer(room.startsWith('SAME-')?room:'SAME-'+room);else{$('roomCode').textContent='SAME-'+id.slice(-6).toUpperCase();$('roomInfo').style.display='block'}setTravelButtons()});
+  myPeer.on('connection',c=>{connections[c.peer]=c;c.on('open',()=>sendJoin(c));c.on('data',d=>handleData(c.peer,d));c.on('close',()=>removePeer(c.peer))});
+  myPeer.on('error',err=>{$('loginStatus').textContent='Connection issue: '+err.type+'. Try again or check your internet.';$('loginStatus').style.color='#ff9c9c'});
+ }catch(e){$('loginStatus').textContent='Could not connect. Check your internet and reload.'}
+}
+$('btnStart').onclick=login;$('copyCode').onclick=async()=>{try{await navigator.clipboard.writeText($('roomCode').textContent);$('loginStatus').textContent='Room code copied!'}catch(e){$('loginStatus').textContent='Please select and copy the room code.'}};
+let lastBroadcast=0;
+const clock=new THREE.Clock();let cameraTarget=new THREE.Vector3(0,0,10),lastPos=new THREE.Vector3();
+function animate(){
+ requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05),now=performance.now();
+ if(taxiState==='arriving'){
+  // Car approaches the player on the road, then reverses to face the club route.
+  car.position.z-=8*dt;
+  if(car.position.z<=12){car.position.z=12;taxiState='boarding';stateTimer=0;showHint('Car stopped. You are getting into the car…');}
+ }else if(taxiState==='boarding'){
+  stateTimer+=dt;
+  if(stateTimer>.9){player.visible=false;startDrive()}
+ }else if(taxiState==='driving'){
+  const elapsed=now-journeyStart,p=Math.min(1,elapsed/journeyDuration);
+  // Move down the long main road over exactly two minutes. Roadside scenery scrolls past
+  // by moving the car through the road world; camera follows continuously.
+  car.position.z=roadStartZ+(roadEndZ-roadStartZ)*p;
+  car.position.x=Math.sin(p*Math.PI*26)*.55;
+  car.rotation.y=Math.PI+Math.sin(p*Math.PI*26)*.055;
+  $('driveProgress').style.width=(p*100).toFixed(1)+'%';
+  const remain=Math.max(0,Math.ceil((journeyDuration-elapsed)/1000)),mm=String(Math.floor(remain/60)).padStart(2,'0'),ss=String(remain%60).padStart(2,'0');
+  $('driveSub').textContent='Main road • '+mm+':'+ss+' remaining';
+  if(p>=1)arriveAtClub();
+ }else if(taxiState==='arrivingAtDoor'){
+  stateTimer+=dt;
+  if(stateTimer>.7&&!arrivalWalkStarted){
+   arrivalWalkStarted=true;player.visible=true;carParts.passenger.visible=false;
+   // The taxi reverses away as soon as the passenger is safely out.
+   taxiState='carReversingAfterDrop';stateTimer=0;
+   walkTo(0,-99,()=>{player.position.set(0,0,-100);setTimeout(enterClub,350)});
+   showHint('Welcome! The taxi is reversing away while you walk inside…');
+  }
+ }else if(taxiState==='carReversingAfterDrop'){
+  stateTimer+=dt;car.position.z+=12*dt;car.position.x+=0.25*dt;
+  if(car.position.z>-83){car.visible=false;carParts.passenger.visible=false;taxiState='arrivingAtDoor';stateTimer=0;}
+  // keep the walking destination active while the car pulls away
+  if(player.visible&&targetPos){const dx=targetPos.x-player.position.x,dz=targetPos.z-player.position.z,dist=Math.hypot(dx,dz),step=4.2*dt;if(dist>.08){player.position.x+=dx/dist*Math.min(step,dist);player.position.z+=dz/dist*Math.min(step,dist);player.rotation.y=Math.atan2(dx,dz);animatePerson(player,dt,true)}if(dist<=step+.08){const done=targetPos.callback;player.position.x=targetPos.x;player.position.z=targetPos.z;targetPos=null;animatePerson(player,dt,false);if(typeof done==='function')done()}}
+
+ }else if(taxiState==='leavingClub'){
+  if(!targetPos){stateTimer+=dt;if(stateTimer>.4){player.visible=false;carParts.passenger.visible=true;taxiState='reverseOutside';stateTimer=0;showHint('You are in the car. Reversing out…')}}
+ }else if(taxiState==='reverseOutside'){
+  // Reverse away from the club door, then begin a return drive.
+  car.position.z+=5*dt;
+  if(car.position.z>=-88){taxiState='returnDrive';journeyStart=now;journeyDuration=120000;roadStartZ=car.position.z;roadEndZ=18;currentZone='road';$('driveOverlay').style.display='block';$('driveTitle').textContent='🚕 Driving back outside';showHint('The car is taking you back outside.')}
+ }else if(taxiState==='returnDrive'){
+  const p=Math.min(1,(now-journeyStart)/journeyDuration);car.position.z=roadStartZ+(roadEndZ-roadStartZ)*p;$('driveProgress').style.width=(p*100)+'%';
+  const remain=Math.max(0,Math.ceil((journeyDuration-(now-journeyStart))/1000));$('driveSub').textContent='Main road • '+String(Math.floor(remain/60)).padStart(2,'0')+':'+String(remain%60).padStart(2,'0')+' remaining';
+  if(p>=1){$('driveOverlay').style.display='none';car.visible=false;carParts.passenger.visible=false;player.visible=true;currentZone='outside';outside.visible=true;inside.visible=false;player.position.set(0,0,10);taxiState='none';$('tag').textContent='🌴 Outside';showHint('You are back outside. Tap the ground to walk.');setTravelButtons();updateVisibility()}
+ }
+ // Ordinary walking / mobile controls.
+ if(player.visible&&taxiState==='none'){
+  let mx=0,mz=0;
+  if(held.has('arrowup')||held.has('w')||held.has('forward'))mz-=1;
+  if(held.has('arrowdown')||held.has('s')||held.has('back'))mz+=1;
+  if(held.has('arrowleft')||held.has('a')||held.has('left'))mx-=1;
+  if(held.has('arrowright')||held.has('d')||held.has('right'))mx+=1;
+  if(mx||mz){targetPos=null;$('interactBtn').style.display='none';const len=Math.hypot(mx,mz);mx/=len;mz/=len;player.position.x+=mx*4.2*dt;player.position.z+=mz*4.2*dt;player.rotation.y=Math.atan2(mx,mz);animatePerson(player,dt,true)}
+  else if(targetPos){
+   const dx=targetPos.x-player.position.x,dz=targetPos.z-player.position.z,dist=Math.hypot(dx,dz),step=4.2*dt;
+   if(dist>.08){const move=Math.min(step,dist);player.position.x+=dx/dist*move;player.position.z+=dz/dist*move;const angle=Math.atan2(dx,dz);let diff=((angle-player.rotation.y+Math.PI)%(Math.PI*2))-Math.PI;player.rotation.y+=diff*Math.min(1,dt*9);animatePerson(player,dt,true)}
+   if(dist<=step+.08){const done=targetPos.callback;player.position.x=targetPos.x;player.position.z=targetPos.z;targetPos=null;animatePerson(player,dt,false);if(typeof done==='function')done()}
+  }else animatePerson(player,dt,false);
+  if(currentZone==='club'){player.position.x=THREE.MathUtils.clamp(player.position.x,-15,15);player.position.z=THREE.MathUtils.clamp(player.position.z,-15,15)}
+  else{player.position.x=THREE.MathUtils.clamp(player.position.x,-55,55);player.position.z=THREE.MathUtils.clamp(player.position.z,-110,55)}
+ }
+ for(const id in remotePlayers){const rp=remotePlayers[id],a=rp.avatar;if(!a.visible)continue;const dx=rp.target.x-a.position.x,dz=rp.target.z-a.position.z,d=Math.hypot(dx,dz);if(d>.08){a.position.x+=dx*Math.min(1,dt*7);a.position.z+=dz*Math.min(1,dt*7);a.rotation.y=Math.atan2(dx,dz);animatePerson(a,dt,true)}else animatePerson(a,dt,false)}
+ if(now-lastBroadcast>100){if(player.visible&&taxiState==='none')broadcast();lastBroadcast=now}
+ // Camera follows the player on foot or the car throughout the full two-minute road journey.
+ const followCar=['arriving','boarding','driving','arrivingAtDoor','leavingClub','reverseOutside','returnDrive'].includes(taxiState);
+ const focus=followCar?car.position:player.position;
+ cameraTarget.lerp(new THREE.Vector3(focus.x,0,focus.z),Math.min(1,dt*4.5));
+ const desired=new THREE.Vector3(focus.x,followCar?8:8.5,focus.z+(followCar?12:10));
+ camera.position.lerp(desired,Math.min(1,dt*3.5));camera.lookAt(focus.x,followCar?1.2:1.3,focus.z);
+ renderer.render(scene,camera)
+}
+function animatePerson(p,dt,moving){const u=p.userData;if(moving){u.walkPhase+=dt*(performance.now()<(u.runUntil||0)?16:10);u.legs.forEach((l,i)=>l.rotation.x=Math.sin(u.walkPhase+i*Math.PI)*(performance.now()<(u.runUntil||0)?.85:.58));u.arms.forEach((a,i)=>a.rotation.x=Math.sin(u.walkPhase+i*Math.PI+Math.PI)*.42);u.rig.position.y=Math.abs(Math.sin(u.walkPhase*2))*.035}else{u.legs.forEach(l=>l.rotation.x+=(0-l.rotation.x)*Math.min(1,dt*9));u.arms.forEach(a=>a.rotation.x+=(0-a.rotation.x)*Math.min(1,dt*9));u.rig.position.y+=(0-u.rig.position.y)*Math.min(1,dt*9)}}
+
+// Life activities: usable on the current map. These are local character actions, not claims of real-world simulation.
+const activities=[['🎵 Dance','dance'],['🍔 Eat','eat'],['☕ Drink coffee','coffee'],['💪 Exercise','exercise'],['🧘 Relax','relax'],['🪑 Sit down','sit'],['😴 Sleep','sleep'],['💼 Work','work'],['📚 Study','study'],['🛍️ Shopping','shopping'],['🎬 Watch movie','movie'],['🏖️ Beach','beach'],['🏃 Run','run'],['👋 Wave','wave'],['💬 Socialize','social'],['🚕 Call taxi','taxi']];
+const ag=$('activityGrid');activities.forEach(([label,act])=>{const b=document.createElement('button');b.textContent=label;b.style.cssText='padding:10px 6px;font-size:12px;min-height:40px';b.onclick=()=>doActivity(act);ag.appendChild(b)});
+$('btnActivities').onclick=()=>$('activityPanel').style.display=$('activityPanel').style.display==='block'?'none':'block';$('activityClose').onclick=()=>$('activityPanel').style.display='none';
+function doActivity(act){$('activityPanel').style.display='none';if(taxiState!=='none'){showHint('Please wait until your ride is finished.');return}if(act==='taxi'){if(currentZone==='club'){showHint('Use Go Outside to call a taxi back.')}else beginJourney(true);return}if(act==='beach'||act==='shopping'||act==='movie'||act==='work'||act==='study'){showHint(({beach:'Beach activity selected — walk around the outdoor world.',shopping:'Shopping activity selected — explore the world on foot.',movie:'Movie time selected — imagine settling in with friends.',work:'Work mode selected — take a moment at your virtual workspace.',study:'Study mode selected — take a moment to learn.'})[act]);return}const labels={dance:'💃 Dancing! Keep moving to enjoy the music.',eat:'🍔 You are eating.',coffee:'☕ Enjoying a coffee.',exercise:'💪 Exercise time!',relax:'🧘 Taking a moment to relax.',sit:'🪑 Sitting down to rest.',sleep:'😴 Resting for a moment.',run:'🏃 Running!',wave:'👋 You wave hello to everyone nearby.',social:'💬 Ready to socialize — walk close to another player and tap Talk.'};showHint(labels[act]||'Activity started.');if(act==='dance'){player.userData.activity='dance';player.userData.activityUntil=performance.now()+8000}else if(act==='wave'){player.userData.activity='wave';player.userData.activityUntil=performance.now()+1800}else if(act==='run'){player.userData.runUntil=performance.now()+8000}else{player.userData.activity=act;player.userData.activityUntil=performance.now()+4000}}
+
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>
