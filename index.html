@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>SameWave — Virtual World</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{font-family:Arial,Helvetica,sans-serif;background:#101827;color:#fff}
+#world{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+
+#topbar{
+ position:fixed;top:0;left:0;right:0;z-index:5;
+ display:flex;justify-content:space-between;align-items:center;
+ padding:calc(12px + env(safe-area-inset-top)) 15px 12px;
+ background:linear-gradient(#07101ddd,transparent);
+ pointer-events:none
+}
+.logo{font-size:23px;font-weight:900;letter-spacing:-1px}
+.logo span{color:#ff4d8d}
+.subtitle{font-size:11px;color:#c8d6e9;margin-top:4px}
+.badge{font-size:11px;background:#101827cc;border:1px solid #ffffff22;
+ padding:8px 11px;border-radius:30px}
+
+#info{
+ position:fixed;top:100px;left:12px;z-index:5;
+ background:#101827c9;border:1px solid #ffffff22;
+ padding:10px 12px;border-radius:12px;font-size:12px;
+ max-width:190px;line-height:1.5;pointer-events:none
+}
+
+#controls{
+ position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));
+ left:0;right:0;display:flex;align-items:flex-end;
+ justify-content:space-between;padding:0 18px;z-index:10;
+ pointer-events:none
+}
+#joystick{
+ width:120px;height:120px;border-radius:50%;
+ background:#dbeafe25;border:2px solid #ffffff55;
+ position:relative;touch-action:none;pointer-events:auto;
+}
+#stick{
+ position:absolute;width:48px;height:48px;
+ left:34px;top:34px;border-radius:50%;
+ background:#ffffffbb;border:2px solid white;
+ box-shadow:0 4px 18px #0006
+}
+.actions{display:flex;flex-direction:column;gap:12px;pointer-events:auto}
+.action{
+ width:60px;height:60px;border-radius:50%;
+ background:#ff4d8d;border:2px solid #ffffff99;
+ color:white;font-size:25px;box-shadow:0 5px 18px #0005;
+}
+.action:active{transform:scale(.94)}
+#hint{
+ position:fixed;bottom:155px;left:50%;transform:translateX(-50%);
+ z-index:5;white-space:nowrap;background:#101827bb;
+ padding:8px 12px;border-radius:20px;font-size:11px;color:#e6edf7;
+ pointer-events:none
+}
+#toast{
+ position:fixed;left:50%;top:45%;transform:translate(-50%,-50%);
+ background:#101827ee;padding:16px 20px;border-radius:14px;
+ border:1px solid #ffffff33;z-index:20;display:none;
+ max-width:85%;text-align:center
+}
+#menu{
+ position:fixed;right:12px;top:95px;z-index:10;
+ display:flex;flex-direction:column;gap:8px
+}
+.menuBtn{
+ background:#101827dd;color:#fff;border:1px solid #ffffff33;
+ border-radius:12px;padding:10px 12px;font-size:12px
+}
+#loading{
+ position:fixed;inset:0;z-index:50;background:#101827;
+ display:flex;align-items:center;justify-content:center;
+ flex-direction:column;gap:12px;text-align:center;padding:24px
+}
+.loader{
+ width:42px;height:42px;border:4px solid #ffffff22;
+ border-top-color:#ff4d8d;border-radius:50%;
+ animation:spin 1s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+
+@media(min-width:700px){
+ #controls{padding:0 45px 20px}
+ #joystick{width:135px;height:135px}
+ #stick{left:41px;top:41px}
+ #hint{bottom:175px}
+}
+</style>
+</head>
+
+<body>
+<div id="loading">
+ <div class="loader"></div>
+ <h2>Entering SameWave...</h2>
+ <p>Preparing your virtual world</p>
+</div>
+
+<div id="world"></div>
+
+<header id="topbar">
+ <div>
+  <div class="logo">Same<span>Wave</span> 🌐</div>
+  <div class="subtitle">Your world. Your people. Your wavelength.</div>
+ </div>
+ <div class="badge">🌍 3D WORLD</div>
+</header>
+
+<div id="info">
+ <b>🌴 Island Life</b><br>
+ Explore your world and discover new places.
+</div>
+
+<div id="menu">
+ <button class="menuBtn" id="homeBtn">🏡 Home</button>
+ <button class="menuBtn" id="lookBtn">👕 Change look</button>
+ <button class="menuBtn" id="danceBtn">💃 Dance</button>
+</div>
+
+<div id="hint">Use the joystick to walk around</div>
+
+<div id="controls">
+ <div id="joystick"><div id="stick"></div></div>
+ <div class="actions">
+  <button class="action" id="waveBtn" aria-label="Wave">👋</button>
+  <button class="action" id="jumpBtn" aria-label="Jump">⬆️</button>
+ </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import * as THREE from
+'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+const root = document.getElementById('world');
+const loading = document.getElementById('loading');
+const toast = document.getElementById('toast');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#91d5f7');
+scene.fog = new THREE.Fog('#91d5f7', 45, 125);
+
+const camera = new THREE.PerspectiveCamera(
+ 65, innerWidth / innerHeight, 0.1, 250
+);
+
+const renderer = new THREE.WebGLRenderer({
+ antialias:true,
+ powerPreference:'high-performance'
+});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+root.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight('#e7f6ff','#57734c',2));
+
+const sun=new THREE.DirectionalLight('#fff1d1',3);
+sun.position.set(-20,35,20);
+sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.left=-40;
+sun.shadow.camera.right=40;
+sun.shadow.camera.top=40;
+sun.shadow.camera.bottom=-40;
+scene.add(sun);
+
+// Materials
+const mat=(color,roughness=0.9)=>new THREE.MeshStandardMaterial({
+ color,roughness
+});
+
+const grassMat=mat('#66b95b');
+const sandMat=mat('#e8d19a');
+const roadMat=mat('#a8b0b5');
+const whiteMat=mat('#f6f5ed');
+const roofMat=mat('#df795d');
+const woodMat=mat('#79513a');
+
+// Main island
+const island=new THREE.Mesh(
+ new THREE.CylinderGeometry(42,45,3,64),
+ grassMat
+);
+island.position.y=-1.5;
+island.receiveShadow=true;
+scene.add(island);
+
+// Sandy beach
+const beach=new THREE.Mesh(
+ new THREE.CylinderGeometry(43,46,0.7,64),
+ sandMat
+);
+beach.position.y=-0.25;
+scene.add(beach);
+
+// Ocean
+const ocean=new THREE.Mesh(
+ new THREE.PlaneGeometry(400,400),
+ new THREE.MeshStandardMaterial({
+  color:'#3caed1',roughness:0.3,metalness:0.1
+ })
+);
+ocean.rotation.x=-Math.PI/2;
+ocean.position.y=-0.65;
+scene.add(ocean);
+
+// Ground
+const ground=new THREE.Mesh(
+ new THREE.CircleGeometry(41,64),
+ grassMat
+);
+ground.rotation.x=-Math.PI/2;
+ground.position.y=0.12;
+ground.receiveShadow=true;
+scene.add(ground);
+
+// Roads
+function box(name,x,y,z,sx,sy,sz,material){
+ const mesh=new THREE.Mesh(
+  new THREE.BoxGeometry(sx,sy,sz),material
+ );
+ mesh.name=name;
+ mesh.position.set(x,y,z);
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+ scene.add(mesh);
+ return mesh;
+}
+
+box('Main road',0,0.15,0,7,0.12,65,roadMat);
+box('Cross road',0,0.16,-5,52,0.12,5,roadMat);
+
+// Road markings
+for(let z=-29;z<31;z+=6){
+ box('Road marking',0,0.23,z,0.16,0.025,2.8,whiteMat);
+}
+
+// Houses
+function makeHouse(x,z,color){
+ const bodyMat=mat(color);
+ box('House',x,1.6,z,5,3,4,bodyMat);
+
+ const roof=new THREE.Mesh(
+  new THREE.ConeGeometry(3.8,2.4,4),
+  roofMat
+ );
+ roof.position.set(x,4.3,z);
+ roof.rotation.y=Math.PI/4;
+ roof.castShadow=true;
+ scene.add(roof);
+
+ box('Door',x,0.95,z+2.04,0.9,1.8,0.12,woodMat);
+
+ const windowMat=new THREE.MeshStandardMaterial({
+  color:'#91d9f5',metalness:0.15,roughness:0.2
+ });
+ box('Window',x-1.5,2,z+2.08,1,0.8,0.1,windowMat);
+ box('Window',x+1.5,2,z+2.08,1,0.8,0.1,windowMat);
+}
+
+makeHouse(-12,-12,'#fff0d4');
+makeHouse(12,-12,'#f3c5d0');
+makeHouse(-12,10,'#d2e8ff');
+makeHouse(12,10,'#f6d69a');
+
+// Trees
+function makeTree(x,z,scale=1){
+ const trunk=new THREE.Mesh(
+  new THREE.CylinderGeometry(.22*scale,.35*scale,2*scale,8),
+  woodMat
+ );
+ trunk.position.set(x,scale,z);
+ trunk.castShadow=true;
+ scene.add(trunk);
+
+ const leavesMat=mat('#25864d');
+ for(let i=0;i<3;i++){
+  const leaves=new THREE.Mesh(
+   new THREE.SphereGeometry(
+    1.15*scale-i*.13*scale,10,8
+   ),
+   leavesMat
+  );
+  leaves.position.set(
+   x,2*scale+i*.55*scale,z
+  );
+  leaves.castShadow=true;
+  scene.add(leaves);
+ }
+}
+
+for(let i=0;i<42;i++){
+ const angle=Math.random()*Math.PI*2;
+ const radius=23+Math.random()*14;
+ const x=Math.cos(angle)*radius;
+ const z=Math.sin(angle)*radius;
+ if(Math.abs(x)<5 || (Math.abs(z)<4 && Math.abs(x)<18))continue;
+ makeTree(x,z,.7+Math.random()*.65);
+}
+
+// Park benches
+function makeBench(x,z){
+ box('Bench seat',x,.65,z,2,.18,.65,woodMat);
+ box('Bench back',x,1,z-.25,2,.65,.15,woodMat);
+ for(const dx of [-.7,.7]){
+  box('Bench leg',x+dx,.3,z,.13,.6,.13,woodMat);
+ }
+}
+makeBench(-4,-17);
+makeBench(5,16);
+makeBench(-17,2);
+
+// Human character
+function makePerson(){
+ const person=new THREE.Group();
+
+ const skin=mat('#b97852');
+ const shirt=mat('#ff4d8d');
+ const trousers=mat('#253552');
+ const shoes=mat('#f6f6f6');
+ const hair=mat('#241b18');
+
+ function sphere(parent,material,x,y,z,sx,sy,sz){
+  const m=new THREE.Mesh(
+   new THREE.SphereGeometry(1,16,12),material
+  );
+  m.position.set(x,y,z);
+  m.scale.set(sx,sy,sz);
+  m.castShadow=true;
+  parent.add(m);
+  return m;
+ }
+
+ function limb(material,x,y,z,sx,sy,sz){
+  const m=new THREE.Mesh(
+   new THREE.CapsuleGeometry(sx,sy,4,8),material
+  );
+  m.position.set(x,y,z);
+  m.castShadow=true;
+  person.add(m);
+  return m;
+ }
+
+ // Body
+ const torso=new THREE.Mesh(
+  new THREE.CapsuleGeometry(.39,.65,5,12),shirt
+ );
+ torso.position.y=1.65;
+ torso.castShadow=true;
+ person.add(torso);
+
+ // Neck and head
+ limb(skin,0,2.25,0,.12,.12,.12);
+ sphere(person,skin,0,2.65,0,.31,.38,.29);
+
+ // Hair
+ sphere(person,hair,0,2.89,-.025,.32,.2,.3);
+
+ // Eyes
+ const eyeMat=mat('#fffdf6');
+ const pupilMat=mat('#251d1b');
+
+ for(const x of [-.115,.115]){
+  sphere(person,eyeMat,x,2.68,.255,.065,.055,.035);
+  sphere(person,pupilMat,x,2.68,.287,.026,.033,.018);
+ }
+
+ // Smile
+ const smile=new THREE.Mesh(
+  new THREE.TorusGeometry(.09,.018,6,16,Math.PI),
+  mat('#6c3025')
+ );
+ smile.position.set(0,2.53,.282);
+ smile.rotation.z=Math.PI;
+ person.add(smile);
+
+ // Arms and legs with pivots for animation
+ const arms=[];
+ for(const x of [-.49,.49]){
+  const pivot=new THREE.Group();
+  pivot.position.set(x,1.98,0);
+  person.add(pivot);
+
+  const arm=new THREE.Mesh(
+   new THREE.CapsuleGeometry(.13,.57,4,8),shirt
+  );
+  arm.position.y=-.38;
+  arm.castShadow=true;
+  pivot.add(arm);
+
+  const hand=new THREE.Mesh(
+   new THREE.SphereGeometry(.13,12,10),skin
+  );
+  hand.position.y=-.78;
+  pivot.add(hand);
+  arms.push(pivot);
+ }
+
+ const legs=[];
+ for(const x of [-.19,.19]){
+  const pivot=new THREE.Group();
+  pivot.position.set(x,1.18,0);
+  person.add(pivot);
+
+  const leg=new THREE.Mesh(
+   new THREE.CapsuleGeometry(.16,.57,4,8),trousers
+  );
+  leg.position.y=-.4;
+  leg.castShadow=true;
+  pivot.add(leg);
+
+  const shoe=new THREE.Mesh(
+   new THREE.BoxGeometry(.34,.16,.48),shoes
+  );
+  shoe.position.set(0,-.78,.1);
+  shoe.castShadow=true;
+  pivot.add(shoe);
+  legs.push(pivot);
+ }
+
+ person.userData={arms,legs,shirt};
+ return person;
+}
+
+const player=makePerson();
+player.position.set(0,0,8);
+scene.add(player);
+
+// Player name label
+function makeLabel(text){
+ const canvas=document.createElement('canvas');
+ canvas.width=512;
+ canvas.height=128;
+ const ctx=canvas.getContext('2d');
+
+ ctx.fillStyle='#111827dd';
+ ctx.beginPath();
+ ctx.roundRect(10,15,492,98,25);
+ ctx.fill();
+
+ ctx.font='bold 43px Arial';
+ ctx.textAlign='center';
+ ctx.textBaseline='middle';
+ ctx.fillStyle='white';
+ ctx.fillText(text.slice(0,22),256,64);
+
+ const texture=new THREE.CanvasTexture(canvas);
+ texture.colorSpace=THREE.SRGBColorSpace;
+
+ const sprite=new THREE.Sprite(
+  new THREE.SpriteMaterial({
+   map:texture,transparent:true,depthTest:false
+  })
+ );
+ sprite.scale.set(3,0.75,1);
+ sprite.position.y=3.65;
+ player.add(sprite);
+ return sprite;
+}
+
+let playerLabel=makeLabel('You');
+
+// Movement
+const input={x:0,y:0};
+const clock=new THREE.Clock();
+
+let walking=false;
+let jumping=false;
+let jumpVelocity=0;
+let waveUntil=0;
+let danceUntil=0;
+let walkPhase=0;
+let currentLook=0;
+
+const looks=[
+ {shirt:'#ff4d8d',skin:'#b97852',hair:'#241b18'},
+ {shirt:'#61e7f5',skin:'#edc39a',hair:'#49301f'},
+ {shirt:'#5de2a2',skin:'#8b563a',hair:'#171717'},
+ {shirt:'#a259ff',skin:'#f0c9ad',hair:'#5a3320'},
+ {shirt:'#ffb347',skin:'#d29b72',hair:'#211914'}
+];
+
+function setLook(index){
+ const look=looks[index%looks.length];
+ player.userData.shirt.color.set(look.shirt);
+
+ // Change skin tone on head, neck, hands and facial base.
+ player.traverse(obj=>{
+  if(!obj.isMesh)return;
+  const name=obj.geometry?.type;
+  if(name==='SphereGeometry'&&obj.material?.color){
+   // Head and hand meshes are identifiable by their positions.
+   if(obj.position.y>2.3 || obj.position.y< -0.65){
+    if(obj.material.color.getHex()!==0x241b18 &&
+       obj.material.color.getHex()!==0x251d1b &&
+       obj.material.color.getHex()!==0xfffdf6){
+      // Only update skin-like spheres, not hair or eyes.
+      if(obj.position.y>2.4 && obj.position.y<2.8)
+       obj.material.color.set(look.skin);
+    }
+   }
+  }
+ });
+}
+
+function showToast(text){
+ toast.textContent=text;
+ toast.style.display='block';
+ clearTimeout(showToast.timer);
+ showToast.timer=setTimeout(()=>{
+  toast.style.display='none';
+ },2200);
+}
+
+// Joystick
+const joystick=document.getElementById('joystick');
+const stick=document.getElementById('stick');
+
+let touching=false;
+
+function resetStick(){
+ touching=false;
+ input.x=0;
+ input.y=0;
+ stick.style.left='34px';
+ stick.style.top='34px';
+}
+
+function moveStick(e){
+ const r=joystick.getBoundingClientRect();
+ const cx=r.left+r.width/2;
+ const cy=r.top+r.height/2;
+ let dx=e.clientX-cx;
+ let dy=e.clientY-cy;
+
+ const max=Math.min(r.width,r.height)*.3;
+ const len=Math.hypot(dx,dy)||1;
+
+ if(len>max){
+  dx=dx/len*max;
+  dy=dy/len*max;
+ }
+
+ const base=(r.width-48)/2;
+ stick.style.left=(base+dx)+'px';
+ stick.style.top=(base+dy)+'px';
+
+ input.x=dx/max;
+ input.y=dy/max;
+}
+
+joystick.addEventListener('pointerdown',e=>{
+ e.preventDefault();
+ touching=true;
+ joystick.setPointerCapture(e.pointerId);
+ moveStick(e);
+});
+
+joystick.addEventListener('pointermove',e=>{
+ if(touching)moveStick(e);
+});
+
+joystick.addEventListener('pointerup',resetStick);
+joystick.addEventListener('pointercancel',resetStick);
+joystick.addEventListener('lostpointercapture',resetStick);
+
+// Buttons
+document.getElementById('waveBtn').onclick=()=>{
+ waveUntil=performance.now()+1300;
+ showToast('👋 Hello! Welcome to SameWave.');
+};
+
+document.getElementById('jumpBtn').onclick=()=>{
+ if(!jumping){
+  jumping=true;
+  jumpVelocity=5.5;
+ }
+};
+
+document.getElementById('danceBtn').onclick=()=>{
+ danceUntil=performance.now()+3000;
+ showToast('💃 Time to dance!');
+};
+
+document.getElementById('lookBtn').onclick=()=>{
+ currentLook=(currentLook+1)%looks.length;
+ setLook(currentLook);
+ showToast('👕 New outfit selected!');
+};
+
+document.getElementById('homeBtn').onclick=()=>{
+ player.position.set(0,0,8);
+ player.rotation.y=0;
+ showToast('🏡 Welcome home!');
+};
+
+// Camera
+camera.position.set(0,5,15);
+
+const cameraTarget=new THREE.Vector3();
+
+function updateCamera(dt){
+ const behind=new THREE.Vector3(0,4.4,8.5);
+ behind.applyAxisAngle(
+  new THREE.Vector3(0,1,0),player.rotation.y
+ );
+
+ const targetPos=player.position.clone().add(behind);
+
+ camera.position.lerp(
+  targetPos,1-Math.exp(-4*dt)
+ );
+
+ cameraTarget.copy(player.position);
+ cameraTarget.y+=1.7;
+
+ camera.lookAt(cameraTarget);
+}
+
+// Animation
+function animate(){
+ requestAnimationFrame(animate);
+
+ const dt=Math.min(clock.getDelta(),0.05);
+ const now=performance.now();
+
+ walking=Math.abs(input.x)+Math.abs(input.y)>.12;
+
+ if(walking){
+  // Camera-relative movement
+  const forward=new THREE.Vector3(0,0,-1);
+  forward.applyQuaternion(camera.quaternion);
+  forward.y=0;
+  forward.normalize();
+
+  const right=new THREE.Vector3(1,0,0);
+  right.applyQuaternion(camera.quaternion);
+  right.y=0;
+  right.normalize();
+
+  const direction=new THREE.Vector3();
+
+  direction.addScaledVector(right,input.x);
+  direction.addScaledVector(forward,-input.y);
+
+  if(direction.lengthSq()>0){
+   direction.normalize();
+
+   player.position.addScaledVector(direction,5.5*dt);
+
+   player.rotation.y=Math.atan2(
+    direction.x,direction.z
+   )+Math.PI;
+  }
+ }
+
+ // Keep the player on the island.
+ const radius=Math.hypot(player.position.x,player.position.z);
+ if(radius>37){
+  player.position.x*=37/radius;
+  player.position.z*=37/radius;
+ }
+
+ // Jump
+ if(jumping){
+  player.position.y+=jumpVelocity*dt;
+  jumpVelocity-=13*dt;
+
+  if(player.position.y<=0){
+   player.position.y=0;
+   jumping=false;
+   jumpVelocity=0;
+  }
+ }
+
+ // Character animation
+ walkPhase+=dt*10;
+
+ const {arms,legs}=player.userData;
+
+ if(walking){
+  legs[0].rotation.x=Math.sin(walkPhase)*.65;
+  legs[1].rotation.x=-Math.sin(walkPhase)*.65;
+  arms[0].rotation.x=-Math.sin(walkPhase)*.45;
+  arms[1].rotation.x=Math.sin(walkPhase)*.45;
+ }else{
+  legs.forEach(l=>l.rotation.x=THREE.MathUtils.damp(
+   l.rotation.x,0,8,dt
+  ));
+
+  arms.forEach(a=>a.rotation.x=THREE.MathUtils.damp(
+   a.rotation.x,0,8,dt
+  ));
+ }
+
+ // Wave animation
+ if(now<waveUntil){
+  arms[1].rotation.z=-Math.PI*.8;
+  arms[1].rotation.x=Math.sin(now*.025)*.7;
+ }
+
+ // Dance animation
+ if(now<danceUntil){
+  player.rotation.y+=dt*5;
+  player.position.y=Math.abs(Math.sin(now*.01))*.12;
+  arms[0].rotation.z=Math.sin(now*.01)*1.2;
+  arms[1].rotation.z=-Math.sin(now*.01)*1.2;
+ }
+
+ updateCamera(dt);
+ renderer.render(scene,camera);
+}
+
+addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+ renderer.setSize(innerWidth,innerHeight);
+});
+
+animate();
+
+setTimeout(()=>{
+ loading.classList.add('hidden');
+ showToast('Welcome to SameWave 🌍');
+},900);
+
+</script>
+</body>
+</html>
