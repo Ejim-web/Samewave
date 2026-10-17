@@ -1,0 +1,1023 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#102344">
+<title>SameWave — Club Edition</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,Arial,sans-serif;background:#87c9ed;color:#fff;user-select:none}
+#game{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+button{font:inherit;color:#fff;border:1px solid #ffffff30;background:#102344e8;border-radius:14px;padding:12px;min-height:44px;cursor:pointer}
+button:disabled{opacity:.45}
+#top{position:absolute;top:env(safe-area-inset-top,8px);left:0;right:0;padding:14px;display:flex;justify-content:space-between;z-index:10;pointer-events:none}
+#brand{font-size:28px;font-weight:900;letter-spacing:-1px;text-shadow:0 2px 10px #001b3c55}
+#brand span,#loginCard h1 span{color:#ff3b91}
+#tag{font-size:12px;margin-top:2px}
+#online{position:absolute;top:100px;left:14px;background:#102344e8;padding:9px 12px;border-radius:14px;font-size:13px;z-index:10}
+#actions{position:absolute;right:12px;top:100px;display:flex;flex-direction:column;gap:8px;z-index:10}
+#actions button{font-size:12px;font-weight:700;text-align:left}
+#hint{position:absolute;bottom:105px;left:50%;transform:translateX(-50%);background:#102344e8;padding:9px 13px;border-radius:24px;font-size:12px;white-space:nowrap;z-index:10;pointer-events:none}
+#interactBtn{position:absolute;bottom:145px;left:50%;transform:translateX(-50%);background:#34c759;font-weight:800;border:2px solid white;border-radius:28px;display:none;z-index:15}
+#login{position:fixed;inset:0;background:linear-gradient(135deg,#102344,#0a1a33);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;overflow-y:auto}
+#loginCard{background:#101d33f5;border:1px solid #ffffff30;border-radius:24px;padding:24px;max-width:400px;width:100%;text-align:center}
+#loginCard h1{margin:0;font-size:30px}
+#loginCard p{color:#a8c4e0;font-size:13px;margin:6px 0 20px}
+.input-group{text-align:left;margin-bottom:12px}
+.input-group label{display:block;font-size:12px;color:#bde8ff;margin-bottom:5px}
+.input-group input{width:100%;background:#0b1626;border:1px solid #ffffff30;border-radius:12px;padding:13px;color:#fff;font-size:16px;outline:none}
+.btn-main{width:100%;margin-top:8px;background:#ff3b91;border:none;font-weight:800}
+#loginStatus{margin-top:12px;font-size:12px;min-height:18px;color:#ffaaaa;overflow-wrap:anywhere}
+#roomInfo{display:none;margin-top:15px;padding:12px;background:#0b1626;border-radius:12px}
+#roomCode{font-size:23px;font-weight:900;letter-spacing:2px;color:#ff3b91}
+#chatPanel{display:none;position:absolute;left:50%;bottom:calc(15px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(94vw,500px);max-height:65vh;background:#101d33f7;border:1px solid #ffffff35;border-radius:18px;padding:12px;z-index:50}
+#chatHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:#bde8ff;font-size:13px}
+#chatMessages{height:30vh;min-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding:5px}
+.msg{padding:8px 11px;border-radius:12px;max-width:85%;overflow-wrap:anywhere;font-size:14px}
+.msg.mine{align-self:flex-end;background:#ff3b91}
+.msg.other{align-self:flex-start;background:#2a3d5c}
+.msg.system{align-self:center;background:#ffffff15;font-size:12px}
+.who{display:block;font-size:10px;opacity:.7;margin-bottom:3px}
+#chatForm{display:flex;gap:6px;margin-top:8px}
+#chatInput{flex:1;min-width:0;background:#0b1626;border:1px solid #ffffff30;border-radius:10px;padding:11px;color:#fff;font-size:16px}
+#chatSend{background:#34c759;border:0}
+#controls{position:absolute;left:14px;bottom:135px;z-index:12;display:grid;grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px;gap:4px;opacity:.9}
+#controls button{padding:0;background:#102344d9;border-radius:13px;font-size:20px;touch-action:none}
+#controls .up{grid-column:2;grid-row:1}
+#controls .left{grid-column:1;grid-row:2}
+#controls .down{grid-column:2;grid-row:2}
+#controls .right{grid-column:3;grid-row:2}
+@media(min-width:700px){#controls{opacity:.65}}
+</style><script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script><script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script></head><body>
+<div id="game"></div><div id="login">
+  <div id="loginCard">
+    <h1>Same<span>Wave</span> 🌐</h1>
+    <p>Walk around, visit the club and meet people.</p>
+    <div class="input-group">
+      <label>Your name</label>
+      <input id="loginName" maxlength="16" placeholder="Enter your name" autocomplete="off">
+    </div>
+    <div class="input-group">
+      <label>Room code — leave blank to create a room</label>
+      <input id="loginRoom" maxlength="12" placeholder="e.g. SAME1234" autocomplete="off">
+    </div>
+    <button class="btn-main" id="btnStart">Enter World</button>
+    <div id="loginStatus"></div>
+    <div id="roomInfo">
+      <small>Share this room code with friends</small>
+      <div id="roomCode"></div>
+      <button id="copyBtn">Copy Code</button>
+    </div>
+  </div>
+</div><div id="top">
+  <div>
+    <div id="brand">Same<span>Wave</span> 🌐</div>
+    <div id="tag">🌴 Outside</div>
+  </div>
+</div><div id="online">🟢 <span id="onlineCount">1</span> online</div><nav id="actions">
+  <button id="btnClub">🎵 Go to Club</button>
+  <button id="btnOutside" disabled>🌴 Go Outside</button>
+</nav><div id="controls">
+  <button class="up" data-dir="up" aria-label="Move forward">▲</button>
+  <button class="left" data-dir="left" aria-label="Move left">◀</button>
+  <button class="down" data-dir="down" aria-label="Move backward">▼</button>
+  <button class="right" data-dir="right" aria-label="Move right">▶</button>
+</div><div id="hint">Tap the ground to walk.</div>
+<button id="interactBtn">💬 Talk</button><div id="chatPanel">
+  <div id="chatHeader">
+    <span id="chatTarget">Chat</span>
+    <button id="closeChat" style="min-height:30px;padding:3px 9px">✕</button>
+  </div>
+  <div id="chatMessages"></div>
+  <form id="chatForm">
+    <input id="chatInput" maxlength="200" placeholder="Say something..." autocomplete="off">
+    <button id="chatSend" type="submit">Send</button>
+  </form>
+</div><script type="module">
+import * as THREE from 'three';
+
+/* BASIC SETUP */
+const game = document.getElementById('game');
+const hint = document.getElementById('hint');
+const $ = id => document.getElementById(id);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8bd1f3);
+scene.fog = new THREE.Fog(0x8bd1f3, 45, 130);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, .1, 300);
+camera.position.set(0, 11, 18);
+
+const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+game.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xe4f7ff, 0x62744b, 2));
+const sunlight = new THREE.DirectionalLight(0xfff1d4, 2.1);
+sunlight.position.set(-15, 30, 15);
+scene.add(sunlight);
+
+const material = (color, roughness=.8, metalness=0) =>
+  new THREE.MeshStandardMaterial({color,roughness,metalness});
+
+const mats = {
+  grass: material(0x8bcf77),
+  road: material(0x737e88),
+  wall: material(0x252b4a),
+  dark: material(0x111827),
+  pink: material(0xff3b91),
+  white: material(0xf6f7fa),
+  skin: material(0x955a3c),
+  shirt: material(0x346c9a),
+  pants: material(0x263b5a),
+  shoe: material(0x171a20)
+};
+
+function box(parent,w,h,d,mat,x,y,z){
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  mesh.position.set(x,y,z);
+  parent.add(mesh);
+  return mesh;
+}
+function sphere(parent,r,mat,x,y,z,sx=1,sy=1,sz=1){
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(r,16,12),mat);
+  mesh.position.set(x,y,z);
+  mesh.scale.set(sx,sy,sz);
+  parent.add(mesh);
+  return mesh;
+}
+function makeFloor(width,depth,mat,x=0,z=0){
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width,depth),mat);
+  mesh.rotation.x=-Math.PI/2;
+  mesh.position.set(x,-.05,z);
+  scene.add(mesh);
+  return mesh;
+}
+
+/* OUTSIDE AREA */
+const outsideGroup = new THREE.Group();
+scene.add(outsideGroup);
+
+const outsideFloor = makeFloor(100,100,mats.grass);
+outsideGroup.add(outsideFloor);
+
+const road = makeFloor(13,80,mats.road);
+outsideGroup.add(road);
+
+const clubBuilding = new THREE.Group();
+clubBuilding.position.set(0,0,-15);
+outsideGroup.add(clubBuilding);
+
+box(clubBuilding,16,8,10,mats.wall,0,4,0);
+box(clubBuilding,18,.5,12,mats.dark,0,8.2,0);
+box(clubBuilding,4,4,.2,mats.dark,0,2,5.05);
+box(clubBuilding,6,1.3,.3,mats.pink,0,6,5.1);
+
+for(let i=0;i<12;i++){
+  const tree = new THREE.Group();
+  const x = (i%2 ? 1:-1)*(10+Math.random()*18);
+  const z = -25+Math.random()*50;
+  tree.position.set(x,0,z);
+  outsideGroup.add(tree);
+  box(tree,.4,3,.4,material(0x79543b),0,1.5,0);
+  sphere(tree,1.5,material(0x16834e),0,4,0,1,1.2,1);
+}
+
+/* NIGHTCLUB */
+const insideGroup = new THREE.Group();
+scene.add(insideGroup);
+insideGroup.visible=false;
+
+const insideFloor=makeFloor(30,30,material(0x242433));
+insideGroup.add(insideFloor);
+
+box(insideGroup,30,8,.5,material(0x101018),0,4,-15);
+box(insideGroup,30,8,.5,material(0x101018),0,4,15);
+box(insideGroup,.5,8,30,material(0x101018),-15,4,0);
+box(insideGroup,.5,8,30,material(0x101018),15,4,0);
+
+box(insideGroup,12,.1,12,material(0xff3b91),0,.02,0);
+
+const bar = new THREE.Group();
+bar.position.set(-10,0,-8);
+insideGroup.add(bar);
+box(bar,8,1.3,2.5,material(0x4a2c2a),0,.7,0);
+box(bar,8.2,.15,2.7,mats.white,0,1.42,0);
+for(let i=0;i<4;i++) box(bar,.25,.7,.25,material(0x34c759),-3+i*2,1.8,0);
+
+const dj = new THREE.Group();
+dj.position.set(0,0,-12);
+insideGroup.add(dj);
+box(dj,10,1.3,2,mats.dark,0,.65,0);
+box(dj,2,2,.7,mats.pink,0,2,0);
+
+for(let i=0;i<5;i++){
+  const light = new THREE.PointLight([0xff3b91,0x345bff,0x34c759][i%3],35,13);
+  light.position.set(-10+i*5,5,-8);
+  insideGroup.add(light);
+}
+
+/* HUMAN AVATARS */
+const skinColors=[0x955a3c,0x6e422e,0xb97950,0xd6a078,0x8d5438];
+const shirtColors=[0x346c9a,0x7b365f,0x36775b,0xd08c32,0x9b4dca,0xe04a4a,0x2ab7a9];
+
+function makePerson(options={}){
+  const root=new THREE.Group();
+  const body=new THREE.Group();
+  root.add(body);
+
+  const skin=material(options.skin ?? 0x955a3c);
+  const shirt=material(options.shirt ?? 0x346c9a);
+  const pants=material(options.pants ?? 0x263b5a);
+  const hair=material(options.hair ?? 0x201b18);
+
+  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.62,5,10),shirt);
+  torso.position.y=1.48;
+  body.add(torso);
+
+  sphere(body,.265,skin,0,2.25,0,1,.98,.92);
+  sphere(body,.275,hair,0,2.47,-.025,1.06,.52,1);
+  sphere(body,.105,hair,-.2,2.37,-.015,.9,.75,.9);
+  sphere(body,.105,hair,.2,2.37,-.015,.9,.75,.9);
+
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.2,10),skin);
+  neck.position.set(0,2.03,0);
+  body.add(neck);
+
+  const eyeWhite=material(0xffffff);
+  const eyeDark=material(0x211813);
+  for(const side of [-1,1]){
+    sphere(body,.04,eyeWhite,side*.095,2.255,-.24,.8,1,.45);
+    sphere(body,.018,eyeDark,side*.095,2.255,-.264);
+    box(body,.085,.018,.02,hair,side*.095,2.31,-.24);
+  }
+  sphere(body,.032,skin,0,2.17,-.255,.8,1,.7);
+
+  const mouth=new THREE.Mesh(
+    new THREE.TorusGeometry(.05,.008,6,12,Math.PI),
+    material(0x4b2118)
+  );
+  mouth.position.set(0,2.12,-.25);
+  mouth.rotation.z=Math.PI;
+  body.add(mouth);
+
+  const arms=[],legs=[];
+  for(const side of [-1,1]){
+    const arm=new THREE.Group();
+    arm.position.set(side*.4,1.78,0);
+    body.add(arm);
+
+    const upper=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.39,4,8),shirt);
+    upper.position.y=-.23;
+    arm.add(upper);
+
+    const forearm=new THREE.Mesh(new THREE.CapsuleGeometry(.085,.35,4,8),skin);
+    forearm.position.y=-.62;
+    arm.add(forearm);
+    sphere(arm,.085,skin,0,-.83,0);
+    arms.push(arm);
+
+    const hip=new THREE.Group();
+    hip.position.set(side*.17,1.02,0);
+    body.add(hip);
+
+    const thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.43,4,8),pants);
+    thigh.position.y=-.25;
+    hip.add(thigh);
+
+    box(hip,.23,.14,.4,mats.shoe,0,-.66,-.07);
+    legs.push(hip);
+  }
+
+  root.userData.body=body;
+  root.userData.arms=arms;
+  root.userData.legs=legs;
+  root.userData.isWalking=false;
+
+  const hitbox=new THREE.Mesh(
+    new THREE.BoxGeometry(1.2,3,1.2),
+    new THREE.MeshBasicMaterial({visible:false})
+  );
+  hitbox.position.y=1.5;
+  root.add(hitbox);
+  root.userData.hitbox=hitbox;
+
+  return root;
+}
+
+function makeNameTag(name){
+  const canvas=document.createElement('canvas');
+  canvas.width=512;
+  canvas.height=128;
+  const ctx=canvas.getContext('2d');
+
+  ctx.fillStyle='rgba(16,35,68,.9)';
+  ctx.beginPath();
+  ctx.roundRect(6,26,500,76,30);
+  ctx.fill();
+
+  ctx.fillStyle='#fff';
+  ctx.font='bold 42px Arial';
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(name.slice(0,18),256,64);
+
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.SRGBColorSpace;
+
+  const sprite=new THREE.Sprite(
+    new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false})
+  );
+  sprite.scale.set(2.5,.62,1);
+  sprite.position.y=3.35;
+  return sprite;
+}
+
+/* PLAYER */
+const player=makePerson();
+player.position.set(0,0,10);
+scene.add(player);
+player.visible=false;
+
+let myName='Guest';
+let myId=null;
+let myPeer=null;
+let currentZone='outside';
+let taxiState='none';
+let taxiDestination=null;
+let selectedPeer=null;
+let walkPhase=0;
+let targetPos=null;
+let isWalking=false;
+const remotePlayers={};
+const connections={};
+
+const WALK_SPEED=4.2;
+const ARRIVAL_DISTANCE=.09;
+
+function clampPosition(x,z,zone=currentZone){
+  if(zone==='club'){
+    return {
+      x:THREE.MathUtils.clamp(x,-13.5,13.5),
+      z:THREE.MathUtils.clamp(z,-13.5,13.5)
+    };
+  }
+  return {
+    x:THREE.MathUtils.clamp(x,-40,40),
+    z:THREE.MathUtils.clamp(z,-45,35)
+  };
+}
+
+function setWalkTarget(x,z,callback=null){
+  const p=clampPosition(x,z);
+  targetPos={x:p.x,z:p.z,callback};
+  isWalking=true;
+}
+
+function stopWalking(){
+  targetPos=null;
+  isWalking=false;
+}
+
+function animatePerson(person,walking,dt,phase=0){
+  const legs=person.userData.legs;
+  const arms=person.userData.arms;
+  const body=person.userData.body;
+
+  if(walking){
+    legs.forEach((leg,i)=>{
+      leg.rotation.x=Math.sin(phase+i*Math.PI)*.48;
+    });
+    arms.forEach((arm,i)=>{
+      arm.rotation.x=Math.sin(phase+i*Math.PI+Math.PI)*.32;
+    });
+    body.position.y=Math.abs(Math.sin(phase*2))*.025;
+  }else{
+    const fade=Math.max(0,1-dt*12);
+    legs.forEach(leg=>leg.rotation.x*=fade);
+    arms.forEach(arm=>arm.rotation.x*=fade);
+    body.position.y*=fade;
+  }
+}
+
+function updatePlayerMovement(dt){
+  if(!player.visible || !targetPos || taxiState!=='none'){
+    if(player.visible) animatePerson(player,false,dt,walkPhase);
+    return;
+  }
+
+  const dx=targetPos.x-player.position.x;
+  const dz=targetPos.z-player.position.z;
+  const distance=Math.hypot(dx,dz);
+
+  if(distance<=ARRIVAL_DISTANCE){
+    player.position.x=targetPos.x;
+    player.position.z=targetPos.z;
+
+    const callback=targetPos.callback;
+    targetPos=null;
+    isWalking=false;
+
+    animatePerson(player,false,dt,walkPhase);
+    if(callback) callback();
+    broadcastState();
+    return;
+  }
+
+  isWalking=true;
+
+  const step=Math.min(WALK_SPEED*dt,distance);
+  const nx=dx/distance;
+  const nz=dz/distance;
+
+  player.position.x+=nx*step;
+  player.position.z+=nz*step;
+
+  const angle=Math.atan2(nx,nz);
+  const difference=Math.atan2(
+    Math.sin(angle-player.rotation.y),
+    Math.cos(angle-player.rotation.y)
+  );
+
+  player.rotation.y+=difference*Math.min(1,10*dt);
+
+  walkPhase+=dt*9;
+  animatePerson(player,true,dt,walkPhase);
+}
+
+/* TAXI */
+const taxi=new THREE.Group();
+scene.add(taxi);
+taxi.visible=false;
+
+box(taxi,2.2,1.1,4,material(0xffd700),0,.7,0);
+box(taxi,1.8,.8,2,material(0x333b49),0,1.5,.1);
+box(taxi,1.65,.08,1.7,material(0x87c9ed),0,1.5,.1);
+
+for(const x of [-1.1,1.1]){
+  for(const z of [-1.2,1.2]){
+    const wheel=new THREE.Mesh(
+      new THREE.CylinderGeometry(.38,.38,.25,16),
+      material(0x171717)
+    );
+    wheel.rotation.z=Math.PI/2;
+    wheel.position.set(x,.4,z);
+    taxi.add(wheel);
+  }
+}
+
+function finishTravel(){
+  taxi.visible=false;
+  taxiState='none';
+  targetPos=null;
+
+  if(taxiDestination==='club'){
+    currentZone='club';
+    outsideGroup.visible=false;
+    insideGroup.visible=true;
+    player.position.set(0,0,11);
+    $('tag').textContent='🎵 Inside Club';
+    $('btnClub').disabled=true;
+    $('btnOutside').disabled=false;
+    hint.textContent='Welcome! Tap the floor to walk.';
+    setWalkTarget(0,5);
+  }else{
+    currentZone='outside';
+    outsideGroup.visible=true;
+    insideGroup.visible=false;
+    player.position.set(4,0,10);
+    $('tag').textContent='🌴 Outside';
+    $('btnClub').disabled=false;
+    $('btnOutside').disabled=true;
+    hint.textContent='Tap the ground to walk.';
+    setWalkTarget(4,7);
+  }
+
+  updateVisibility();
+  updateOnlineCount();
+  broadcastState();
+}
+
+function travelTo(zone){
+  if(taxiState!=='none' || zone===currentZone) return;
+
+  stopWalking();
+  selectedPeer=null;
+  $('interactBtn').style.display='none';
+
+  taxiDestination=zone;
+  taxiState='driving';
+  taxi.visible=true;
+
+  if(zone==='club'){
+    taxi.position.set(4,0,35);
+    taxi.rotation.y=Math.PI;
+  }else{
+    taxi.position.set(4,0,-15);
+    taxi.rotation.y=0;
+  }
+
+  hint.textContent=zone==='club'?'Taxi is coming to the club...':'Taxi is taking you outside...';
+  $('btnClub').disabled=true;
+  $('btnOutside').disabled=true;
+}
+
+$('btnClub').onclick=()=>travelTo('club');
+$('btnOutside').onclick=()=>travelTo('outside');
+
+function updateTaxi(dt){
+  if(taxiState!=='driving') return;
+
+  const destination=taxiDestination==='club'?-15:35;
+  const direction=destination>taxi.position.z?1:-1;
+
+  taxi.position.z+=direction*12*dt;
+
+  if((direction>0 && taxi.position.z>=destination) ||
+     (direction<0 && taxi.position.z<=destination)){
+    taxi.position.z=destination;
+    finishTravel();
+  }
+}
+
+/* MULTIPLAYER */
+function addRemotePlayer(data){
+  if(!data.id || data.id===myId || remotePlayers[data.id]) return;
+
+  const avatar=makePerson({
+    skin:data.skin || skinColors[Math.floor(Math.random()*skinColors.length)],
+    shirt:data.shirt || shirtColors[Math.floor(Math.random()*shirtColors.length)]
+  });
+
+  avatar.position.set(data.x||0,0,data.z||0);
+  avatar.add(makeNameTag(data.name||'Guest'));
+  avatar.userData.hitbox.userData.peerId=data.id;
+  scene.add(avatar);
+
+  remotePlayers[data.id]={
+    avatar,
+    target:{x:data.x||0,z:data.z||0},
+    zone:data.zone||'outside',
+    name:data.name||'Guest',
+    walking:false,
+    phase:0
+  };
+
+  updateVisibility();
+  updateOnlineCount();
+}
+
+function updateVisibility(){
+  for(const id in remotePlayers){
+    remotePlayers[id].avatar.visible=remotePlayers[id].zone===currentZone;
+  }
+}
+
+function updateOnlineCount(){
+  let count=1;
+  for(const id in remotePlayers){
+    if(remotePlayers[id].zone===currentZone) count++;
+  }
+  $('onlineCount').textContent=count;
+}
+
+function removePeer(id){
+  const rp=remotePlayers[id];
+  if(rp){
+    scene.remove(rp.avatar);
+    delete remotePlayers[id];
+  }
+  delete connections[id];
+  if(selectedPeer===id){
+    selectedPeer=null;
+    $('interactBtn').style.display='none';
+  }
+  updateOnlineCount();
+}
+
+function sendJoin(conn){
+  conn.send({
+    type:'join',
+    id:myId,
+    name:myName,
+    x:player.position.x,
+    z:player.position.z,
+    zone:currentZone,
+    skin:0x955a3c,
+    shirt:0x346c9a
+  });
+}
+
+function connectToPeer(peerId){
+  if(!myPeer || peerId===myId || connections[peerId]) return;
+
+  const conn=myPeer.connect(peerId,{reliable:true});
+  connections[peerId]=conn;
+
+  conn.on('open',()=>sendJoin(conn));
+  conn.on('data',data=>handleData(conn.peer,data));
+  conn.on('close',()=>removePeer(conn.peer));
+  conn.on('error',()=>removePeer(conn.peer));
+}
+
+function handleData(peerId,data){
+  if(!data || !data.type) return;
+
+  if(data.type==='join'){
+    if(!remotePlayers[peerId]){
+      addRemotePlayer({...data,id:peerId});
+    }
+
+    const conn=connections[peerId];
+    if(conn && conn.open){
+      conn.send({
+        type:'join',
+        id:myId,
+        name:myName,
+        x:player.position.x,
+        z:player.position.z,
+        zone:currentZone,
+        skin:0x955a3c,
+        shirt:0x346c9a
+      });
+    }
+  }
+
+  if(data.type==='move'){
+    const rp=remotePlayers[peerId];
+    if(!rp) return;
+
+    rp.target.x=data.x;
+    rp.target.z=data.z;
+    rp.zone=data.zone;
+    rp.walking=!!data.walking;
+    updateVisibility();
+    updateOnlineCount();
+  }
+
+  if(data.type==='chat'){
+    addMessage(data.name||'Guest',String(data.message||''),false);
+  }
+}
+
+function broadcastState(){
+  for(const id in connections){
+    const conn=connections[id];
+    if(conn && conn.open){
+      conn.send({
+        type:'move',
+        x:player.position.x,
+        z:player.position.z,
+        zone:currentZone,
+        walking:isWalking
+      });
+    }
+  }
+}
+
+let lastBroadcast=0;
+
+function updateRemotePlayers(dt){
+  for(const id in remotePlayers){
+    const rp=remotePlayers[id];
+    const avatar=rp.avatar;
+
+    if(!avatar.visible) continue;
+
+    const dx=rp.target.x-avatar.position.x;
+    const dz=rp.target.z-avatar.position.z;
+    const distance=Math.hypot(dx,dz);
+
+    if(distance>.03){
+      avatar.position.x+=dx*Math.min(1,dt*9);
+      avatar.position.z+=dz*Math.min(1,dt*9);
+
+      const angle=Math.atan2(dx,dz);
+      const difference=Math.atan2(
+        Math.sin(angle-avatar.rotation.y),
+        Math.cos(angle-avatar.rotation.y)
+      );
+      avatar.rotation.y+=difference*Math.min(1,dt*9);
+
+      rp.phase+=dt*9;
+      animatePerson(avatar,true,dt,rp.phase);
+    }else{
+      animatePerson(avatar,false,dt,rp.phase);
+    }
+  }
+}
+
+/* TAP TO WALK AND APPROACH PLAYERS */
+const raycaster=new THREE.Raycaster();
+const pointer=new THREE.Vector2();
+
+renderer.domElement.addEventListener('pointerdown',event=>{
+  if(!player.visible || taxiState!=='none' || $('chatPanel').style.display==='block') return;
+
+  const rect=renderer.domElement.getBoundingClientRect();
+  pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+  pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+
+  raycaster.setFromCamera(pointer,camera);
+
+  const hitboxes=[];
+  for(const id in remotePlayers){
+    const rp=remotePlayers[id];
+    if(rp.zone===currentZone && rp.avatar.visible){
+      hitboxes.push(rp.avatar.userData.hitbox);
+    }
+  }
+
+  const playerHits=raycaster.intersectObjects(hitboxes,false);
+
+  if(playerHits.length){
+    const id=playerHits[0].object.userData.peerId;
+    const rp=remotePlayers[id];
+    if(!rp) return;
+
+    const dx=rp.avatar.position.x-player.position.x;
+    const dz=rp.avatar.position.z-player.position.z;
+    const distance=Math.hypot(dx,dz)||1;
+
+    const stopX=rp.avatar.position.x-dx/distance*1.6;
+    const stopZ=rp.avatar.position.z-dz/distance*1.6;
+
+    hint.textContent='Walking to '+rp.name+'...';
+    $('interactBtn').style.display='none';
+
+    setWalkTarget(stopX,stopZ,()=>{
+      selectedPeer=id;
+      hint.textContent='You are near '+rp.name;
+      $('interactBtn').style.display='block';
+    });
+    return;
+  }
+
+  const floor=currentZone==='club'?insideFloor:outsideFloor;
+  const floorHit=raycaster.intersectObject(floor,false);
+
+  if(floorHit.length){
+    const point=floorHit[0].point;
+    const p=clampPosition(point.x,point.z);
+
+    selectedPeer=null;
+    $('interactBtn').style.display='none';
+    setWalkTarget(p.x,p.z);
+    hint.textContent='Walking...';
+  }
+});
+
+/* TOUCH DIRECTION CONTROLS */
+const heldDirections=new Set();
+
+document.querySelectorAll('#controls button').forEach(button=>{
+  const dir=button.dataset.dir;
+
+  button.addEventListener('pointerdown',event=>{
+    event.preventDefault();
+    heldDirections.add(dir);
+    button.setPointerCapture(event.pointerId);
+    stopWalking();
+  });
+
+  const release=()=>{
+    heldDirections.delete(dir);
+  };
+
+  button.addEventListener('pointerup',release);
+  button.addEventListener('pointercancel',release);
+  button.addEventListener('lostpointercapture',release);
+});
+
+function updateDirectionalMovement(dt){
+  if(!player.visible || taxiState!=='none' || heldDirections.size===0) return;
+
+  targetPos=null;
+  isWalking=true;
+
+  let x=0,z=0;
+  if(heldDirections.has('left')) x-=1;
+  if(heldDirections.has('right')) x+=1;
+  if(heldDirections.has('up')) z-=1;
+  if(heldDirections.has('down')) z+=1;
+
+  const length=Math.hypot(x,z);
+  if(!length) return;
+
+  x/=length;
+  z/=length;
+
+  const p=clampPosition(
+    player.position.x+x*WALK_SPEED*dt,
+    player.position.z+z*WALK_SPEED*dt
+  );
+
+  player.position.x=p.x;
+  player.position.z=p.z;
+
+  const angle=Math.atan2(x,z);
+  const difference=Math.atan2(
+    Math.sin(angle-player.rotation.y),
+    Math.cos(angle-player.rotation.y)
+  );
+  player.rotation.y+=difference*Math.min(1,10*dt);
+
+  walkPhase+=dt*9;
+  animatePerson(player,true,dt,walkPhase);
+}
+
+/* CHAT */
+const chatMessages=$('chatMessages');
+const chatInput=$('chatInput');
+
+function addMessage(name,message,mine){
+  const el=document.createElement('div');
+  el.className='msg '+(mine?'mine':'other');
+
+  const who=document.createElement('span');
+  who.className='who';
+  who.textContent=name;
+
+  const text=document.createTextNode(message);
+  el.append(who,text);
+  chatMessages.appendChild(el);
+  chatMessages.scrollTop=chatMessages.scrollHeight;
+
+  while(chatMessages.children.length>80){
+    chatMessages.removeChild(chatMessages.firstChild);
+  }
+}
+
+function systemMessage(message){
+  const el=document.createElement('div');
+  el.className='msg system';
+  el.textContent=message;
+  chatMessages.appendChild(el);
+  chatMessages.scrollTop=chatMessages.scrollHeight;
+}
+
+$('interactBtn').onclick=()=>{
+  if(!selectedPeer || !remotePlayers[selectedPeer]){
+    hint.textContent='Walk close to someone first.';
+    return;
+  }
+
+  $('chatTarget').textContent='Chatting with '+remotePlayers[selectedPeer].name;
+  $('chatPanel').style.display='block';
+  $('interactBtn').style.display='none';
+  chatInput.focus();
+};
+
+$('closeChat').onclick=()=>{
+  $('chatPanel').style.display='none';
+  chatInput.blur();
+  $('interactBtn').style.display=selectedPeer?'block':'none';
+  hint.textContent='Tap the ground to walk.';
+};
+
+$('chatForm').addEventListener('submit',event=>{
+  event.preventDefault();
+
+  const message=chatInput.value.trim();
+  if(!message) return;
+
+  addMessage(myName,message,true);
+
+  if(selectedPeer && connections[selectedPeer]?.open){
+    connections[selectedPeer].send({
+      type:'chat',
+      name:myName,
+      message
+    });
+  }else{
+    systemMessage('You are not connected to this player.');
+  }
+
+  chatInput.value='';
+});
+
+/* LOGIN AND ROOMS */
+$('btnStart').onclick=()=>{
+  if(!window.Peer){
+    $('loginStatus').textContent='PeerJS failed to load. Check your internet connection and reload.';
+    return;
+  }
+
+  myName=$('loginName').value.trim().slice(0,16)||'Guest';
+
+  let room=$('loginRoom').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+  if(room.startsWith('SAME')) room=room.slice(4);
+  if(!room) room=String(Math.floor(1000+Math.random()*9000));
+
+  room='SAME'+room;
+
+  $('btnStart').disabled=true;
+  $('loginStatus').textContent='Connecting to multiplayer...';
+
+  if(myPeer) myPeer.destroy();
+
+  const joinRequested=$('loginRoom').value.trim().length>0;
+
+  myPeer=new Peer(room);
+
+  myPeer.on('open',id=>{
+    myId=id;
+    $('loginStatus').textContent='Connected!';
+    $('loginStatus').style.color='#34c759';
+
+    $('roomCode').textContent=room;
+    $('roomInfo').style.display='block';
+
+    player.visible=true;
+    player.position.set(0,0,10);
+    camera.position.set(0,12,25);
+    $('login').style.display='none';
+
+    if(joinRequested) connectToPeer(room);
+    else hint.textContent='Share your room code with friends.';
+    updateOnlineCount();
+  });
+
+  myPeer.on('connection',conn=>{
+    connections[conn.peer]=conn;
+
+    conn.on('open',()=>sendJoin(conn));
+    conn.on('data',data=>handleData(conn.peer,data));
+    conn.on('close',()=>removePeer(conn.peer));
+    conn.on('error',()=>removePeer(conn.peer));
+  });
+
+  myPeer.on('error',err=>{
+    $('btnStart').disabled=false;
+
+    if(err.type==='unavailable-id'){
+      $('loginStatus').textContent='This room code is already in use. Try joining it or choose another code.';
+    }else{
+      $('loginStatus').textContent='Connection error: '+err.type+'. Please try again.';
+    }
+  });
+};
+
+$('copyBtn').onclick=async()=>{
+  try{
+    await navigator.clipboard.writeText($('roomCode').textContent);
+    $('loginStatus').textContent='Room code copied!';
+  }catch{
+    $('loginStatus').textContent='Your room code is: '+$('roomCode').textContent;
+  }
+};
+
+/* CAMERA AND GAME LOOP */
+const clock=new THREE.Clock();
+const cameraTarget=new THREE.Vector3(0,0,10);
+const desiredCamera=new THREE.Vector3();
+
+function animate(){
+  requestAnimationFrame(animate);
+
+  const dt=Math.min(clock.getDelta(),.05);
+
+  updateTaxi(dt);
+
+  if(heldDirections.size){
+    updateDirectionalMovement(dt);
+  }else{
+    updatePlayerMovement(dt);
+  }
+
+  updateRemotePlayers(dt);
+
+  const now=performance.now();
+  if(now-lastBroadcast>100){
+    broadcastState();
+    lastBroadcast=now;
+  }
+
+  const focus=taxiState==='driving' ? taxi.position : player.position;
+
+  cameraTarget.lerp(
+    new THREE.Vector3(focus.x,0,focus.z),
+    Math.min(1,dt*4)
+  );
+
+  desiredCamera.set(cameraTarget.x,cameraTarget.y+11,cameraTarget.z+17);
+  camera.position.lerp(desiredCamera,Math.min(1,dt*4));
+  camera.lookAt(cameraTarget.x,cameraTarget.y+1.3,cameraTarget.z);
+
+  renderer.render(scene,camera);
+}
+
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script></body>
+</html>
